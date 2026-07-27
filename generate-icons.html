@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate PWA Icons</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .icon-preview { display: flex; flex-wrap: wrap; gap: 20px; margin: 20px 0; }
+        .icon-box { text-align: center; border: 1px solid #ddd; padding: 10px; border-radius: 8px; }
+        canvas { border-radius: 12px; }
+        .btn { padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+        .btn:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <h1>📱 PWA Icon Generator</h1>
+    <p>Enter text for your app icon (first letter or abbreviation):</p>
+    <input type="text" id="iconText" value="SCR" style="padding: 10px; font-size: 20px; width: 200px; border: 2px solid #ddd; border-radius: 6px;">
+    <br><br>
+    <button class="btn" onclick="generateIcons()">Generate Icons</button>
+    
+    <div id="preview" class="icon-preview"></div>
+    <div id="downloadSection" style="display: none; margin-top: 20px;">
+        <button class="btn" onclick="downloadIcons()">📥 Download All Icons</button>
+        <p style="color: #666; margin-top: 10px;">Place the downloaded icons in the <code>/icons/</code> folder.</p>
+    </div>
+
+    <script>
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        let generatedIcons = {};
+
+        function generateIcons() {
+            const text = document.getElementById('iconText').value || 'SCR';
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '';
+            generatedIcons = {};
+
+            sizes.forEach(size => {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                // Background
+                const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+                gradient.addColorStop(0, '#66BB6A');
+                gradient.addColorStop(1, '#388E3C');
+                ctx.fillStyle = gradient;
+                ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.roundRect(0, 0, size, size, size * 0.2);
+                ctx.fill();
+
+                // Border
+                ctx.shadowColor = 'transparent';
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.lineWidth = size * 0.02;
+                ctx.beginPath();
+                ctx.roundRect(size * 0.02, size * 0.02, size * 0.96, size * 0.96, size * 0.18);
+                ctx.stroke();
+
+                // Text
+                ctx.fillStyle = 'white';
+                ctx.font = `bold ${size * 0.5}px Arial, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx.shadowBlur = size * 0.05;
+                ctx.fillText(text.charAt(0).toUpperCase(), size/2, size/2 + size * 0.03);
+
+                // Small subtitle
+                ctx.shadowColor = 'transparent';
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.font = `${size * 0.08}px Arial, sans-serif`;
+                ctx.fillText('Register', size/2, size * 0.85);
+
+                // Preview
+                const wrapper = document.createElement('div');
+                wrapper.className = 'icon-box';
+                wrapper.innerHTML = `
+                    <canvas width="${size}" height="${size}"></canvas>
+                    <div>${size}x${size}</div>
+                `;
+                const previewCanvas = wrapper.querySelector('canvas');
+                previewCanvas.getContext('2d').drawImage(canvas, 0, 0);
+                preview.appendChild(wrapper);
+
+                // Store for download
+                generatedIcons[size] = canvas;
+            });
+
+            document.getElementById('downloadSection').style.display = 'block';
+        }
+
+        function downloadIcons() {
+            Object.entries(generatedIcons).forEach(([size, canvas]) => {
+                const link = document.createElement('a');
+                link.download = `icon-${size}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+            alert('Icons downloaded! Place them in the /icons/ folder.');
+        }
+
+        // Polyfill for roundRect if not supported
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                if (typeof r === 'number') r = [r, r, r, r];
+                const [tl, tr, br, bl] = r.map(v => Math.min(v, Math.min(w, h) / 2));
+                this.moveTo(x + tl, y);
+                this.lineTo(x + w - tr, y);
+                this.quadraticCurveTo(x + w, y, x + w, y + tr);
+                this.lineTo(x + w, y + h - br);
+                this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+                this.lineTo(x + bl, y + h);
+                this.quadraticCurveTo(x, y + h, x, y + h - bl);
+                this.lineTo(x, y + tl);
+                this.quadraticCurveTo(x, y, x + tl, y);
+                this.closePath();
+                return this;
+            };
+        }
+
+        // Auto-generate on load
+        window.onload = () => generateIcons();
+    </script>
+</body>
+</html>
