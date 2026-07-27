@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Slum Child Organization - Register</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Offline register for slum child organization">
+</head>
+<body>
+
+<div class="container" id="app">
+    <!-- Header -->
+    <div class="header">
+        <h1>
+            <span>📚</span> 
+            <span id="orgNameDisplay">Child Register</span>
+        </h1>
+        <div class="header-actions no-print">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme" aria-label="Toggle theme">
+                🌙
+            </button>
+            <button class="btn btn-success btn-sm" onclick="exportPDF()">📄 PDF</button>
+            <button class="btn btn-info btn-sm" onclick="syncData()">🔄 Sync</button>
+        </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div id="statusMessage" class="status-message"></div>
+
+    <!-- Setup Section -->
+    <div id="setupSection" class="setup-section">
+        <h2>🏫 Organization Setup</h2>
+        <p style="color: var(--text-muted); margin-bottom: 16px;">Enter organization details. This will be saved locally.</p>
+        <div class="form-group">
+            <label>Organization Name *</label>
+            <input type="text" id="orgName" placeholder="Enter organization name" value="Slum Child Organization">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Admin 1 *</label>
+                <input type="text" id="admin1" placeholder="Admin name and phone" value="Admin 1">
+            </div>
+            <div class="form-group">
+                <label>Admin 2 *</label>
+                <input type="text" id="admin2" placeholder="Admin name and phone" value="Admin 2">
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSetup()">✅ Save Setup</button>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" style="display: none;">
+        <!-- Tabs -->
+        <div class="tabs no-print">
+            <button class="tab active" onclick="switchTab('attendance')">📅 Attendance</button>
+            <button class="tab" onclick="switchTab('students')">👨‍🎓 Students</button>
+            <button class="tab" onclick="switchTab('teachers')">👨‍🏫 Teachers</button>
+            <button class="tab" onclick="switchTab('reports')">📊 Reports</button>
+        </div>
+
+        <!-- Attendance Tab (Default) -->
+        <div id="tab-attendance" class="tab-content active">
+            <div class="card">
+                <div class="card-header">
+                    <h3>📅 Mark Daily Attendance</h3>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>📆 Date *</label>
+                        <input type="date" id="attendanceDate" onchange="renderAttendanceGrid()">
+                    </div>
+                    <div class="form-group">
+                        <label>📝 Activity Done Today *</label>
+                        <input type="text" id="activityToday" placeholder="e.g., Math lesson, Sports, Art..." style="height: 42px;">
+                    </div>
+                </div>
+                
+                <!-- Teacher Attendance -->
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>👨‍🏫 Teachers Present Today</label>
+                    <div id="teacherAttendanceCheckboxes" style="display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 0;"></div>
+                    <small style="color: var(--text-muted);">Select the teachers who were present today</small>
+                </div>
+
+                <div style="margin-top: 12px;">
+                    <button class="btn btn-success" onclick="submitAttendance()" style="width: 100%; justify-content: center;">
+                        📤 Submit Daily Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="quick-stats" id="attendanceStats">
+                <span>👨‍🎓 Total: <strong id="totalStudentsStat">0</strong></span>
+                <span>✅ Present: <strong id="presentCountStat">0</strong></span>
+                <span>❌ Absent: <strong id="absentCountStat">0</strong></span>
+                <span>📊 Rate: <strong id="attendanceRateStat">0%</strong></span>
+                <span>👨‍🏫 Teachers: <strong id="teacherPresentCount">0</strong></span>
+            </div>
+
+            <!-- Attendance Grid -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>👨‍🎓 Students</h3>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Tap Present or Absent</span>
+                </div>
+                <div id="attendanceGrid" class="attendance-grid"></div>
+            </div>
+
+            <!-- Attendance History -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📜 Attendance History</h3>
+                </div>
+                <div id="attendanceHistory" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+        </div>
+
+        <!-- Students Tab -->
+        <div id="tab-students" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>➕ Add New Student</h3>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Student Name *</label>
+                        <input type="text" id="studentName" placeholder="Enter full name">
+                    </div>
+                    <div class="form-group">
+                        <label>Days to Attend (per week)</label>
+                        <select id="studentDays">
+                            <option value="5">5 days</option>
+                            <option value="6">6 days</option>
+                            <option value="7">7 days</option>
+                            <option value="3">3 days</option>
+                            <option value="4">4 days</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addStudent()">➕ Add Student</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>📋 Student List (<span id="studentCount">0</span>)</h3>
+                    <input type="text" class="search-input" id="studentSearch" placeholder="🔍 Search students..." onkeyup="renderStudents()">
+                </div>
+                <div id="studentList" style="max-height: 500px; overflow-y: auto;"></div>
+            </div>
+        </div>
+
+        <!-- Teachers Tab -->
+        <div id="tab-teachers" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>➕ Add Teacher</h3>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Teacher Name *</label>
+                        <input type="text" id="teacherName" placeholder="Enter full name">
+                    </div>
+                    <div class="form-group">
+                        <label>Role *</label>
+                        <select id="teacherRole">
+                            <option value="Head Teacher">Head Teacher</option>
+                            <option value="Assistant Teacher">Assistant Teacher</option>
+                            <option value="Class Teacher">Class Teacher</option>
+                            <option value="Subject Teacher">Subject Teacher</option>
+                            <option value="Volunteer">Volunteer</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addTeacher()">➕ Add Teacher</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>👨‍🏫 Teacher List (<span id="teacherCount">0</span>)</h3>
+                </div>
+                <div id="teacherList"></div>
+            </div>
+        </div>
+
+        <!-- Reports Tab -->
+        <div id="tab-reports" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>📊 Reports & Analytics</h3>
+                    <button class="btn btn-success btn-sm no-print" onclick="exportPDF()">📄 Export PDF</button>
+                </div>
+                <div class="stats-grid" id="statsGrid"></div>
+                <div id="reportContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="modalTitle">Details</h3>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
