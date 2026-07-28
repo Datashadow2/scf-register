@@ -39,6 +39,87 @@ let appData = {
 let currentAttendanceStatus = {};
 let currentTeacherAttendance = {};
 
+// ==================== UNDO/REDO SYSTEM ====================
+let historyStack = [];
+let historyIndex = -1;
+const MAX_HISTORY = 50;
+
+function pushToHistory(action, data) {
+    // Remove any forward history
+    historyStack = historyStack.slice(0, historyIndex + 1);
+    
+    // Add new action
+    historyStack.push({
+        action: action,
+        data: data,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Limit history size
+    if (historyStack.length > MAX_HISTORY) {
+        historyStack.shift();
+    }
+    
+    historyIndex = historyStack.length - 1;
+    updateUndoButtons();
+}
+
+function undoAction() {
+    if (historyIndex < 0) return;
+    
+    const previousState = historyStack[historyIndex - 1];
+    
+    if (previousState) {
+        // Restore previous state
+        restoreAttendanceState(previousState.data);
+        historyIndex--;
+        showStatus('↩️ Undo successful', 'info');
+    } else {
+        showStatus('Nothing to undo', 'info');
+    }
+    updateUndoButtons();
+}
+
+function redoAction() {
+    if (historyIndex >= historyStack.length - 1) return;
+    
+    const nextState = historyStack[historyIndex + 1];
+    if (nextState) {
+        restoreAttendanceState(nextState.data);
+        historyIndex++;
+        showStatus('↪️ Redo successful', 'info');
+    } else {
+        showStatus('Nothing to redo', 'info');
+    }
+    updateUndoButtons();
+}
+
+function restoreAttendanceState(data) {
+    if (data.statusMap) {
+        currentAttendanceStatus = JSON.parse(JSON.stringify(data.statusMap));
+    }
+    if (data.teacherMap) {
+        currentTeacherAttendance = JSON.parse(JSON.stringify(data.teacherMap));
+    }
+    renderAttendanceGrid();
+    updateAttendanceStats();
+    renderTeacherCheckboxes();
+}
+
+function updateUndoButtons() {
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    
+    if (undoBtn) {
+        undoBtn.disabled = historyIndex < 0;
+        undoBtn.style.opacity = historyIndex < 0 ? '0.5' : '1';
+    }
+    if (redoBtn) {
+        redoBtn.disabled = historyIndex >= historyStack.length - 1;
+        redoBtn.style.opacity = historyIndex >= historyStack.length - 1 ? '0.5' : '1';
+    }
+}
+
 // ==================== INITIALIZATION ====================
 function init() {
     loadData();
@@ -61,6 +142,7 @@ function init() {
     checkSetup();
     setDefaultDate();
     updateUI();
+    updateUndoButtons();
 }
 
 // ==================== DATA MANAGEMENT ====================
@@ -303,6 +385,14 @@ function toggleTeacherAttendance(teacherId) {
     }
     
     updateTeacherCount();
+    
+    // Push to history
+    pushToHistory('teacherToggle', {
+        teacherId: teacherId,
+        status: checkbox.checked,
+        statusMap: currentAttendanceStatus,
+        teacherMap: currentTeacherAttendance
+    });
 }
 
 function updateTeacherCount() {
@@ -360,18 +450,16 @@ function renderAttendanceGrid() {
 
     grid.innerHTML = appData.students.map((student, index) => {
         const isPresent = currentAttendanceStatus[student.id] || false;
+        const statusClass = isPresent ? 'present' : 'absent';
+        const statusText = isPresent ? '✅ Present' : '❌ Absent';
+        
         return `
-            <div class="attendance-item" data-student-id="${student.id}">
+            <div class="attendance-item ${statusClass}" 
+                 data-student-id="${student.id}"
+                 onclick="toggleStudentStatus('${student.id}')">
                 <div class="name">${student.name}</div>
-                <div class="status-buttons">
-                    <button class="status-btn present ${isPresent ? 'selected' : ''}" 
-                            onclick="setAttendanceStatus('${student.id}', true, event)">
-                        ✅ Present
-                    </button>
-                    <button class="status-btn absent ${!isPresent ? 'selected' : ''}" 
-                            onclick="setAttendanceStatus('${student.id}', false, event)">
-                        ❌ Absent
-                    </button>
+                <div class="status-badge ${statusClass}">
+                    ${statusText}
                 </div>
             </div>
         `;
@@ -379,39 +467,80 @@ function renderAttendanceGrid() {
 
     // Re-render teacher checkboxes to ensure they're in sync
     renderTeacherCheckboxes();
+    updateUndoButtons();
 }
 
-function setAttendanceStatus(studentId, present, event) {
-    if (event) {
-        event.stopPropagation();
-    }
-
-    currentAttendanceStatus[studentId] = present;
-
-    // Update the UI for this student
-    const item = document.querySelector(`.attendance-item[data-student-id="${studentId}"]`);
-    if (item) {
-        const presentBtn = item.querySelector('.status-btn.present');
-        const absentBtn = item.querySelector('.status-btn.absent');
-        
-        presentBtn.classList.toggle('selected', present);
-        absentBtn.classList.toggle('selected', !present);
-    }
-
-    // Update stats
+function toggleStudentStatus(studentId) {
+    // Toggle the status
+    const newStatus = !currentAttendanceStatus[studentId];
+    currentAttendanceStatus[studentId] = newStatus;
+    
+    // Push to history before changing
+    pushToHistory('studentToggle', {
+        studentId: studentId,
+        newStatus: newStatus,
+        statusMap: currentAttendanceStatus,
+        teacherMap: currentTeacherAttendance
+    });
+    
+    // Update UI
+    renderAttendanceGrid();
     updateAttendanceStats();
+    
+    // Vibrate on mobile for feedback
+    if (navigator.vibrate) {
+        navigator.vibrate(10);
+    }
+}
+
+function setAllStudents(status) {
+    // Push current state to history
+    pushToHistory('bulkAction', {
+        action: status ? 'allPresent' : 'allAbsent',
+        statusMap: currentAttendanceStatus,
+        teacherMap: currentTeacherAttendance
+    });
+    
+    // Set all students to the specified status
+    appData.students.forEach(student => {
+        currentAttendanceStatus[student.id] = status;
+    });
+    
+    // Update UI
+    renderAttendanceGrid();
+    updateAttendanceStats();
+    
+    // Vibrate for feedback
+    if (navigator.vibrate) {
+        navigator.vibrate(20);
+    }
+    
+    showStatus(`✅ All students marked as ${status ? 'Present' : 'Absent'}`, 'success');
 }
 
 function updateAttendanceStats() {
     const total = appData.students.length;
     const present = Object.values(currentAttendanceStatus).filter(v => v === true).length;
     const absent = total - present;
+    const marked = Object.keys(currentAttendanceStatus).length;
     const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+    const progress = total > 0 ? Math.round((marked / total) * 100) : 0;
 
     document.getElementById('totalStudentsStat').textContent = total;
     document.getElementById('presentCountStat').textContent = present;
     document.getElementById('absentCountStat').textContent = absent;
     document.getElementById('attendanceRateStat').textContent = rate + '%';
+    
+    // Update progress
+    const progressBar = document.getElementById('attendanceProgress');
+    const progressText = document.getElementById('attendanceProgressText');
+    if (progressBar) {
+        progressBar.style.width = progress + '%';
+        progressBar.style.background = progress === 100 ? 'var(--success)' : 'var(--accent)';
+    }
+    if (progressText) {
+        progressText.textContent = `${marked}/${total} (${progress}%)`;
+    }
 }
 
 function submitAttendance() {
@@ -427,6 +556,15 @@ function submitAttendance() {
         showStatus('Please enter the activity done today.', 'error');
         document.getElementById('activityToday').focus();
         return;
+    }
+
+    // Check if all students are marked
+    const total = appData.students.length;
+    const marked = Object.keys(currentAttendanceStatus).length;
+    if (marked < total) {
+        if (!confirm(`⚠️ Only ${marked}/${total} students are marked. Continue anyway?`)) {
+            return;
+        }
     }
 
     // Get present students from current status
@@ -740,6 +878,7 @@ function exportPDF() {
     pdfContainer.style.padding = '20px';
     pdfContainer.style.fontFamily = 'Arial, sans-serif';
     pdfContainer.style.color = '#333';
+    pdfContainer.style.background = 'white';
     pdfContainer.innerHTML = `
         <h1 style="text-align: center; color: #4CAF50;">${appData.orgName}</h1>
         <h3 style="text-align: center; color: #666;">Daily Report & Analytics</h3>
@@ -757,30 +896,97 @@ function exportPDF() {
 
     document.body.appendChild(pdfContainer);
 
-    html2pdf()
-        .from(pdfContainer)
-        .set({
-            margin: [10, 10],
-            filename: `${appData.orgName}_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        })
-        .save()
-        .then(() => {
+    if (typeof html2pdf !== 'undefined') {
+        html2pdf()
+            .from(pdfContainer)
+            .set({
+                margin: [10, 10],
+                filename: `${appData.orgName}_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            })
+            .save()
+            .then(() => {
+                document.body.removeChild(pdfContainer);
+                showStatus('✅ PDF exported successfully!', 'success');
+            })
+            .catch(err => {
+                console.error('PDF export error:', err);
+                document.body.removeChild(pdfContainer);
+                showStatus('Error exporting PDF. Please try again.', 'error');
+            });
+    } else {
+        // Fallback - try print
+        try {
+            const win = window.open('', '_blank');
+            win.document.write(pdfContainer.innerHTML);
+            win.document.write(`
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+                    th { background: #f5f7fa; }
+                </style>
+            `);
+            win.document.close();
+            win.print();
             document.body.removeChild(pdfContainer);
-            showStatus('✅ PDF exported successfully!', 'success');
-        })
-        .catch(err => {
-            console.error('PDF export error:', err);
+            showStatus('✅ PDF printed successfully!', 'success');
+        } catch(e) {
             document.body.removeChild(pdfContainer);
-            showStatus('Error exporting PDF. Please try again.', 'error');
-        });
+            showStatus('PDF export failed. Please use print (Ctrl+P).', 'error');
+        }
+    }
 }
 
 // ==================== SYNC ====================
 function syncData() {
     saveData();
-    showStatus('🔄 Data synced locally!', 'success');
+    
+    // Create backup
+    const dataStr = JSON.stringify(appData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    if (confirm('Data saved locally. Download backup file?')) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${appData.orgName}_Backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showStatus('✅ Data backed up successfully!', 'success');
+    } else {
+        showStatus('🔄 Data synced locally!', 'success');
+    }
+}
+
+function restoreFromBackup() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                const data = JSON.parse(event.target.result);
+                if (confirm('This will overwrite ALL current data. Are you sure?')) {
+                    appData = data;
+                    saveData();
+                    updateUI();
+                    showStatus('✅ Data restored from backup!', 'success');
+                }
+            } catch(err) {
+                showStatus('❌ Invalid backup file.', 'error');
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
 }
 
 // ==================== DARK MODE ====================
@@ -857,15 +1063,33 @@ function updateUI() {
     renderAttendanceHistory();
     renderTeacherCheckboxes();
     generateReports();
+    updateUndoButtons();
 }
 
 // ==================== KEYBOARD SHORTCUTS ====================
 document.addEventListener('keydown', function(e) {
+    // Escape to close modal
     if (e.key === 'Escape') closeModal();
+    
+    // Ctrl+Z for undo
+    if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undoAction();
+    }
+    
+    // Ctrl+Y or Ctrl+Shift+Z for redo
+    if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'z')) {
+        e.preventDefault();
+        redoAction();
+    }
+    
+    // Ctrl+S to sync
     if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
         syncData();
     }
+    
+    // Enter key on date or activity fields triggers submit
     if (e.key === 'Enter') {
         const active = document.activeElement;
         if (active && (active.id === 'attendanceDate' || active.id === 'activityToday')) {
