@@ -50,21 +50,15 @@ const MAX_HISTORY = 50;
 
 function pushToHistory(action, data) {
     try {
-        // Remove any forward history
         historyStack = historyStack.slice(0, historyIndex + 1);
-        
-        // Add new action
         historyStack.push({
             action: action,
             data: data,
             timestamp: new Date().toISOString()
         });
-        
-        // Limit history size
         if (historyStack.length > MAX_HISTORY) {
             historyStack.shift();
         }
-        
         historyIndex = historyStack.length - 1;
         updateUndoButtons();
     } catch (e) {
@@ -78,9 +72,7 @@ function undoAction() {
             showStatus('Nothing to undo', 'info');
             return;
         }
-        
         const previousState = historyStack[historyIndex - 1];
-        
         if (previousState) {
             restoreAttendanceState(previousState.data);
             historyIndex--;
@@ -101,7 +93,6 @@ function redoAction() {
             showStatus('Nothing to redo', 'info');
             return;
         }
-        
         const nextState = historyStack[historyIndex + 1];
         if (nextState) {
             restoreAttendanceState(nextState.data);
@@ -125,7 +116,7 @@ function restoreAttendanceState(data) {
         if (data.teacherMap) {
             currentTeacherAttendance = JSON.parse(JSON.stringify(data.teacherMap));
         }
-        renderAttendanceGrid();
+        updateAttendanceGridUI();
         updateAttendanceStats();
         renderTeacherCheckboxes();
     } catch (e) {
@@ -137,7 +128,6 @@ function updateUndoButtons() {
     try {
         const undoBtn = document.getElementById('undoBtn');
         const redoBtn = document.getElementById('redoBtn');
-        
         if (undoBtn) {
             undoBtn.disabled = historyIndex < 0;
             undoBtn.style.opacity = historyIndex < 0 ? '0.5' : '1';
@@ -157,7 +147,6 @@ function init() {
         console.log('Initializing app...');
         loadData();
         
-        // Initialize with default students if no students exist
         if (appData.students.length === 0) {
             console.log('Adding default students...');
             DEFAULT_STUDENTS.forEach(name => {
@@ -177,11 +166,10 @@ function init() {
         setDefaultDate();
         updateUI();
         updateUndoButtons();
-        
-        // Set up event delegation for attendance grid
         setupEventDelegation();
         
         console.log('App initialized successfully!');
+        console.log(`📊 ${appData.students.length} students loaded`);
     } catch (e) {
         console.error('Error initializing app:', e);
         showStatus('Error initializing app. Please refresh.', 'error');
@@ -190,10 +178,8 @@ function init() {
 
 // ==================== EVENT DELEGATION ====================
 function setupEventDelegation() {
-    // Use event delegation for the attendance grid
     const grid = document.getElementById('attendanceGrid');
     if (grid) {
-        // Remove any existing listeners to avoid duplicates
         grid.removeEventListener('click', handleAttendanceClick);
         grid.addEventListener('click', handleAttendanceClick);
         console.log('✅ Event delegation set up for attendance grid');
@@ -201,7 +187,6 @@ function setupEventDelegation() {
 }
 
 function handleAttendanceClick(e) {
-    // Find the closest attendance-item
     const item = e.target.closest('.attendance-item');
     if (!item) return;
     
@@ -228,7 +213,6 @@ function loadData() {
 function saveData() {
     try {
         localStorage.setItem('slumChildApp', JSON.stringify(appData));
-        updateUI();
     } catch (e) {
         console.error('Error saving data:', e);
         showStatus('Error saving data. Please check storage space.', 'error');
@@ -301,7 +285,7 @@ function addStudent() {
     document.getElementById('studentName').value = '';
     showStatus(`✅ ${name} added successfully! ID: ${student.id}`, 'success');
     renderStudents();
-    renderAttendanceGrid();
+    updateAttendanceGridUI();
 }
 
 function renderStudents() {
@@ -346,7 +330,7 @@ function removeStudent(id) {
         appData.students = appData.students.filter(s => s.id !== id);
         saveData();
         renderStudents();
-        renderAttendanceGrid();
+        updateAttendanceGridUI();
         showStatus('Student removed.', 'success');
     }
 }
@@ -418,7 +402,6 @@ function renderTeacherCheckboxes() {
         return;
     }
 
-    // Get existing teacher attendance for today's date
     const date = document.getElementById('attendanceDate').value;
     const existingRecord = appData.attendance.find(a => a.date === date);
     const presentTeachers = existingRecord ? existingRecord.presentTeachers || [] : [];
@@ -453,7 +436,6 @@ function toggleTeacherAttendance(teacherId) {
     
     updateTeacherCount();
     
-    // Push to history
     pushToHistory('teacherToggle', {
         teacherId: teacherId,
         status: checkbox.checked,
@@ -467,13 +449,14 @@ function updateTeacherCount() {
     document.getElementById('teacherPresentCount').textContent = count;
 }
 
-// ==================== ATTENDANCE ====================
+// ==================== ATTENDANCE - MAIN FUNCTIONS ====================
 function setDefaultDate() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('attendanceDate').value = today;
 }
 
-function renderAttendanceGrid() {
+// ==================== UPDATED: Direct UI Update Function ====================
+function updateAttendanceGridUI() {
     const grid = document.getElementById('attendanceGrid');
     const date = document.getElementById('attendanceDate').value;
 
@@ -490,61 +473,47 @@ function renderAttendanceGrid() {
     // Get existing attendance for this date
     const existingRecord = appData.attendance.find(a => a.date === date);
     const presentStudents = existingRecord ? existingRecord.presentStudents : [];
-    const presentTeachers = existingRecord ? existingRecord.presentTeachers || [] : [];
 
-    // Build status map
-    currentAttendanceStatus = {};
+    // Build status map - ensure all students have a status
     appData.students.forEach(student => {
-        currentAttendanceStatus[student.id] = presentStudents.includes(student.id);
-    });
-
-    // Update teacher checkboxes
-    appData.teachers.forEach(teacher => {
-        currentTeacherAttendance[teacher.id] = presentTeachers.includes(teacher.id);
-        const checkbox = document.getElementById(`teacher-${teacher.id}`);
-        const label = document.getElementById(`teacher-label-${teacher.id}`);
-        if (checkbox) {
-            checkbox.checked = presentTeachers.includes(teacher.id);
-        }
-        if (label) {
-            label.classList.toggle('checked', presentTeachers.includes(teacher.id));
+        if (!(student.id in currentAttendanceStatus)) {
+            currentAttendanceStatus[student.id] = presentStudents.includes(student.id);
         }
     });
-    updateTeacherCount();
 
     // Update stats
     updateAttendanceStats();
 
-    // Render the grid - using data attributes for event delegation
-    grid.innerHTML = appData.students.map((student) => {
+    // Build the grid HTML
+    let html = '';
+    appData.students.forEach((student) => {
         const isPresent = currentAttendanceStatus[student.id] || false;
         const statusClass = isPresent ? 'present' : 'absent';
         const statusText = isPresent ? '✅ Present' : '❌ Absent';
         
-        return `
+        html += `
             <div class="attendance-item ${statusClass}" 
                  data-student-id="${student.id}"
-                 style="cursor: pointer;">
+                 style="cursor: pointer; transition: all 0.2s ease;">
                 <div class="name">${student.name}</div>
                 <div class="status-badge ${statusClass}">
                     ${statusText}
                 </div>
             </div>
         `;
-    }).join('');
+    });
 
-    // Re-render teacher checkboxes to ensure they're in sync
-    renderTeacherCheckboxes();
-    updateUndoButtons();
+    grid.innerHTML = html;
+    console.log('✅ Attendance grid updated with', appData.students.length, 'students');
 }
 
+// ==================== UPDATED: Toggle Function ====================
 function toggleStudentStatus(studentId) {
     console.log('🔄 Toggling student:', studentId);
     
-    // Make sure the student exists
     const student = appData.students.find(s => s.id === studentId);
     if (!student) {
-        console.error('Student not found:', studentId);
+        console.error('❌ Student not found:', studentId);
         return;
     }
     
@@ -552,9 +521,9 @@ function toggleStudentStatus(studentId) {
     const newStatus = !currentAttendanceStatus[studentId];
     currentAttendanceStatus[studentId] = newStatus;
     
-    console.log(`📝 ${student.name} set to ${newStatus ? 'Present' : 'Absent'}`);
+    console.log(`📝 ${student.name} set to ${newStatus ? 'Present ✅' : 'Absent ❌'}`);
     
-    // Push to history before changing
+    // Push to history
     pushToHistory('studentToggle', {
         studentId: studentId,
         newStatus: newStatus,
@@ -562,41 +531,50 @@ function toggleStudentStatus(studentId) {
         teacherMap: currentTeacherAttendance
     });
     
-    // Update UI
-    renderAttendanceGrid();
+    // Update the UI directly - this is the key fix!
+    updateAttendanceGridUI();
     updateAttendanceStats();
     
     // Vibrate on mobile for feedback
     if (navigator.vibrate) {
         navigator.vibrate(10);
     }
+    
+    // Auto-save after each toggle
+    saveData();
 }
 
+// ==================== UPDATED: Render Grid (calls update function) ====================
+function renderAttendanceGrid() {
+    updateAttendanceGridUI();
+    renderTeacherCheckboxes();
+    updateUndoButtons();
+}
+
+// ==================== Bulk Actions ====================
 function setAllStudents(status) {
-    // Push current state to history
     pushToHistory('bulkAction', {
         action: status ? 'allPresent' : 'allAbsent',
         statusMap: currentAttendanceStatus,
         teacherMap: currentTeacherAttendance
     });
     
-    // Set all students to the specified status
     appData.students.forEach(student => {
         currentAttendanceStatus[student.id] = status;
     });
     
-    // Update UI
-    renderAttendanceGrid();
+    updateAttendanceGridUI();
     updateAttendanceStats();
     
-    // Vibrate for feedback
     if (navigator.vibrate) {
         navigator.vibrate(20);
     }
     
     showStatus(`✅ All students marked as ${status ? 'Present' : 'Absent'}`, 'success');
+    saveData();
 }
 
+// ==================== Stats Update ====================
 function updateAttendanceStats() {
     const total = appData.students.length;
     const present = Object.values(currentAttendanceStatus).filter(v => v === true).length;
@@ -610,7 +588,6 @@ function updateAttendanceStats() {
     document.getElementById('absentCountStat').textContent = absent;
     document.getElementById('attendanceRateStat').textContent = rate + '%';
     
-    // Update progress
     const progressBar = document.getElementById('attendanceProgress');
     const progressText = document.getElementById('attendanceProgressText');
     if (progressBar) {
@@ -622,6 +599,7 @@ function updateAttendanceStats() {
     }
 }
 
+// ==================== Submit Attendance ====================
 function submitAttendance() {
     const date = document.getElementById('attendanceDate').value;
     const activity = document.getElementById('activityToday').value.trim();
@@ -637,7 +615,6 @@ function submitAttendance() {
         return;
     }
 
-    // Check if all students are marked
     const total = appData.students.length;
     const marked = Object.keys(currentAttendanceStatus).length;
     if (marked < total) {
@@ -646,17 +623,14 @@ function submitAttendance() {
         }
     }
 
-    // Get present students from current status
     const presentStudents = Object.keys(currentAttendanceStatus).filter(
         id => currentAttendanceStatus[id] === true
     );
 
-    // Get present teachers from checkboxes
     const presentTeachers = Object.keys(currentTeacherAttendance).filter(
         id => currentTeacherAttendance[id] === true
     );
 
-    // Update or create attendance record
     let attendanceRecord = appData.attendance.find(a => a.date === date);
     if (!attendanceRecord) {
         attendanceRecord = {
@@ -672,7 +646,6 @@ function submitAttendance() {
         attendanceRecord.activity = activity;
     }
 
-    // Update student attendance history
     appData.students.forEach(student => {
         const existing = student.attendance.find(a => a.date === date);
         if (!existing) {
@@ -685,7 +658,6 @@ function submitAttendance() {
         }
     });
 
-    // Save daily activity with teacher info
     appData.dailyActivities.push({
         date: date,
         activity: activity,
@@ -702,9 +674,8 @@ function submitAttendance() {
 
     saveData();
     renderAttendanceHistory();
-    renderAttendanceGrid();
+    updateAttendanceGridUI();
     
-    // Clear activity field
     document.getElementById('activityToday').value = '';
     
     const teacherNames = presentTeachers.map(id => {
@@ -720,6 +691,7 @@ function submitAttendance() {
     );
 }
 
+// ==================== Attendance History ====================
 function renderAttendanceHistory() {
     const container = document.getElementById('attendanceHistory');
     const history = appData.attendance.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30);
@@ -780,7 +752,6 @@ function generateReports() {
     const totalStudents = appData.students.length;
     const totalTeachers = appData.teachers.length;
     const totalAttendance = appData.attendance.length;
-    const totalActivities = appData.dailyActivities.length;
 
     let consistencyScores = [];
     appData.students.forEach(student => {
@@ -795,7 +766,6 @@ function generateReports() {
         ? Math.round(consistencyScores.reduce((a, b) => a + b, 0) / consistencyScores.length)
         : 0;
 
-    // Calculate total teacher attendance
     let teacherAttendanceCount = {};
     appData.attendance.forEach(record => {
         (record.presentTeachers || []).forEach(teacherId => {
@@ -864,7 +834,6 @@ function generateReports() {
         </div>
     `;
 
-    // Teacher Attendance Report
     if (appData.teachers.length > 0) {
         reportHTML += `
             <h4 style="margin: 16px 0 10px;">👨‍🏫 Teacher Attendance Summary</h4>
@@ -995,7 +964,6 @@ function exportPDF() {
                 showStatus('Error exporting PDF. Please try again.', 'error');
             });
     } else {
-        // Fallback - try print
         try {
             const win = window.open('', '_blank');
             win.document.write(pdfContainer.innerHTML);
@@ -1021,8 +989,6 @@ function exportPDF() {
 // ==================== SYNC ====================
 function syncData() {
     saveData();
-    
-    // Create backup
     const dataStr = JSON.stringify(appData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
@@ -1127,7 +1093,7 @@ function switchTab(tabName) {
         renderTeacherCheckboxes();
     }
     if (tabName === 'attendance') {
-        renderAttendanceGrid();
+        updateAttendanceGridUI();
         renderAttendanceHistory();
         renderTeacherCheckboxes();
     }
@@ -1138,7 +1104,7 @@ function switchTab(tabName) {
 function updateUI() {
     renderStudents();
     renderTeachers();
-    renderAttendanceGrid();
+    updateAttendanceGridUI();
     renderAttendanceHistory();
     renderTeacherCheckboxes();
     generateReports();
@@ -1147,28 +1113,23 @@ function updateUI() {
 
 // ==================== KEYBOARD SHORTCUTS ====================
 document.addEventListener('keydown', function(e) {
-    // Escape to close modal
     if (e.key === 'Escape') closeModal();
     
-    // Ctrl+Z for undo
     if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         undoAction();
     }
     
-    // Ctrl+Y or Ctrl+Shift+Z for redo
     if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'z')) {
         e.preventDefault();
         redoAction();
     }
     
-    // Ctrl+S to sync
     if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
         syncData();
     }
     
-    // Enter key on date or activity fields triggers submit
     if (e.key === 'Enter') {
         const active = document.activeElement;
         if (active && (active.id === 'attendanceDate' || active.id === 'activityToday')) {
@@ -1177,26 +1138,15 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// ==================== SERVICE WORKER (with error handling) ====================
+// ==================== SERVICE WORKER ====================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
-        // Try to register service worker, but don't fail if it's not found
         navigator.serviceWorker.register('/sw.js')
             .then(function(registration) {
                 console.log('✅ ServiceWorker registration successful');
             })
             .catch(function(err) {
-                // Service worker not found - that's okay, app still works offline via localStorage
-                console.log('⚠️ ServiceWorker registration skipped (not found):', err);
-                // Show a non-blocking message
-                const status = document.getElementById('statusMessage');
-                if (status) {
-                    status.textContent = 'ℹ️ Running in offline mode. Service worker not available.';
-                    status.className = 'status-message show status-info';
-                    setTimeout(() => {
-                        status.classList.remove('show');
-                    }, 4000);
-                }
+                console.log('⚠️ ServiceWorker registration skipped:', err);
             });
     });
 }
@@ -1210,6 +1160,5 @@ window.addEventListener('storage', function(e) {
     }
 });
 
-// ==================== DEBUG: Test toggle functionality ====================
-console.log('🔧 App loaded. Toggle students by clicking on them.');
+console.log('🔧 App loaded. Click on any student to toggle attendance!');
 console.log(`📊 ${DEFAULT_STUDENTS.length} default students available.`);
