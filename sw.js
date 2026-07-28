@@ -94,7 +94,6 @@ self.addEventListener('sync', event => {
 
 function syncData() {
     console.log('Background sync triggered');
-    // This is where you would implement cloud sync if needed
     return Promise.resolve();
 }
 
