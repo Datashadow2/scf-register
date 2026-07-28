@@ -26,6 +26,7 @@
             </button>
             <button class="btn btn-success btn-sm" onclick="exportPDF()">📄 PDF</button>
             <button class="btn btn-info btn-sm" onclick="syncData()">🔄 Sync</button>
+            <button class="btn btn-warning btn-sm" onclick="restoreFromBackup()">📂 Restore</button>
         </div>
     </div>
 
@@ -68,6 +69,10 @@
             <div class="card">
                 <div class="card-header">
                     <h3>📅 Mark Daily Attendance</h3>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-sm btn-outline" onclick="undoAction()" id="undoBtn" title="Undo (Ctrl+Z)" disabled>↩️</button>
+                        <button class="btn btn-sm btn-outline" onclick="redoAction()" id="redoBtn" title="Redo (Ctrl+Y)" disabled>↪️</button>
+                    </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -78,6 +83,13 @@
                         <label>📝 Activity Done Today *</label>
                         <input type="text" id="activityToday" placeholder="e.g., Math lesson, Sports, Art..." style="height: 42px;">
                     </div>
+                </div>
+                
+                <!-- Bulk Actions -->
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0;">
+                    <button class="btn btn-success btn-sm" onclick="setAllStudents(true)">✅ All Present</button>
+                    <button class="btn btn-danger btn-sm" onclick="setAllStudents(false)">❌ All Absent</button>
+                    <button class="btn btn-outline btn-sm" onclick="renderAttendanceGrid()">🔄 Reset</button>
                 </div>
                 
                 <!-- Teacher Attendance -->
@@ -94,7 +106,7 @@
                 </div>
             </div>
 
-            <!-- Quick Stats -->
+            <!-- Quick Stats with Progress Bar -->
             <div class="quick-stats" id="attendanceStats">
                 <span>👨‍🎓 Total: <strong id="totalStudentsStat">0</strong></span>
                 <span>✅ Present: <strong id="presentCountStat">0</strong></span>
@@ -102,12 +114,23 @@
                 <span>📊 Rate: <strong id="attendanceRateStat">0%</strong></span>
                 <span>👨‍🏫 Teachers: <strong id="teacherPresentCount">0</strong></span>
             </div>
+            
+            <!-- Progress Indicator -->
+            <div style="margin: 8px 0 16px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">
+                    <span>Marking Progress</span>
+                    <span id="attendanceProgressText">0/0 (0%)</span>
+                </div>
+                <div style="width: 100%; height: 8px; background: var(--bg-primary); border-radius: 4px; overflow: hidden;">
+                    <div id="attendanceProgress" style="height: 100%; width: 0%; background: var(--accent); transition: width 0.3s ease; border-radius: 4px;"></div>
+                </div>
+            </div>
 
             <!-- Attendance Grid -->
             <div class="card">
                 <div class="card-header">
                     <h3>👨‍🎓 Students</h3>
-                    <span style="font-size: 0.85rem; color: var(--text-muted);">Tap Present or Absent</span>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Tap a student to toggle status</span>
                 </div>
                 <div id="attendanceGrid" class="attendance-grid"></div>
             </div>
