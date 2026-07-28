@@ -387,11 +387,11 @@ body {
     background: var(--present-bg);
 }
 
-/* Attendance Grid */
+/* Updated Attendance Grid - Toggle Cards */
 .attendance-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     padding: 8px 0;
 }
 
@@ -399,102 +399,65 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
-    background: var(--bg-primary);
-    border-radius: 8px;
+    padding: 14px 18px;
+    border-radius: 10px;
     border: 2px solid var(--border-color);
-    transition: var(--transition);
+    transition: all 0.2s ease;
     cursor: pointer;
     touch-action: manipulation;
-    min-height: 50px;
-    grid-column: span 3;
+    background: var(--bg-primary);
+    min-height: 56px;
 }
 
 .attendance-item:active {
     transform: scale(0.98);
 }
 
-.attendance-item .name {
-    font-weight: 500;
-    font-size: 0.95rem;
-    flex: 1;
-}
-
-.attendance-item .status-buttons {
-    display: flex;
-    gap: 8px;
-}
-
-.attendance-item .status-btn {
-    padding: 6px 16px;
-    border: 2px solid var(--border-color);
-    border-radius: 6px;
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: var(--transition);
-    touch-action: manipulation;
-    min-width: 60px;
-    text-align: center;
-}
-
-.attendance-item .status-btn:active {
-    transform: scale(0.92);
-}
-
-.attendance-item .status-btn.present {
+.attendance-item.present {
     background: var(--present-bg);
     border-color: var(--success);
     color: var(--present-text);
 }
 
-.attendance-item .status-btn.absent {
+.attendance-item.absent {
     background: var(--absent-bg);
     border-color: var(--danger);
     color: var(--absent-text);
 }
 
-.attendance-item .status-btn.selected {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+.attendance-item .name {
+    font-weight: 500;
+    font-size: 1rem;
+    flex: 1;
 }
 
-.attendance-item .status-btn.present.selected {
-    border-color: var(--success);
-    box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.3);
+.attendance-item .status-badge {
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    background: rgba(255,255,255,0.6);
 }
 
-.attendance-item .status-btn.absent.selected {
-    border-color: var(--danger);
-    box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.3);
+.attendance-item.present .status-badge {
+    background: rgba(72, 187, 120, 0.2);
+    color: var(--present-text);
 }
 
-/* Compact view for mobile */
-@media (max-width: 600px) {
-    .attendance-item {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-        padding: 12px;
-        grid-column: span 3;
-    }
+.attendance-item.absent .status-badge {
+    background: rgba(229, 62, 62, 0.2);
+    color: var(--absent-text);
+}
 
-    .attendance-item .name {
-        text-align: center;
-        font-size: 0.9rem;
-    }
+/* Undo/Redo buttons */
+#undoBtn:disabled, #redoBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
 
-    .attendance-item .status-buttons {
-        justify-content: center;
-    }
-
-    .attendance-item .status-btn {
-        padding: 8px 20px;
-        font-size: 0.9rem;
-        min-width: 80px;
-    }
+/* Progress bar */
+#attendanceProgress {
+    transition: width 0.3s ease;
 }
 
 /* Table */
@@ -757,6 +720,17 @@ th {
         font-size: 0.75rem;
         padding: 3px 8px;
     }
+    .attendance-item {
+        padding: 12px 14px;
+        min-height: 50px;
+    }
+    .attendance-item .name {
+        font-size: 0.9rem;
+    }
+    .attendance-item .status-badge {
+        font-size: 0.75rem;
+        padding: 3px 12px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -766,14 +740,6 @@ th {
     .header-actions {
         width: 100%;
         justify-content: center;
-    }
-    .attendance-item .status-btn {
-        padding: 6px 14px;
-        font-size: 0.8rem;
-        min-width: 60px;
-    }
-    .attendance-grid {
-        gap: 6px;
     }
     .teacher-checkbox {
         font-size: 0.8rem;
