@@ -1,61 +1,93 @@
 {
   "name": "Slum Child Organization Register",
   "short_name": "Child Register",
-  "description": "Offline register for slum child organization",
+  "description": "Offline register for slum child organization - Track students, teachers, attendance, and activities",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#4CAF50",
   "theme_color": "#4CAF50",
-  "orientation": "portrait",
-  "categories": ["education", "productivity"],
+  "categories": ["education", "productivity", "organization"],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-512.png",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%234CAF50'/%3E%3Ctext x='256' y='350' font-family='Arial' font-size='280' text-anchor='middle' fill='white'%3E📚%3C/text%3E%3Ctext x='256' y='430' font-family='Arial' font-size='36' text-anchor='middle' fill='rgba(255,255,255,0.7)'%3EREGISTER%3C/text%3E%3C/svg%3E",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%234CAF50'/%3E%3Ctext x='256' y='350' font-family='Arial' font-size='280' text-anchor='middle' fill='white'%3E📚%3C/text%3E%3Ctext x='256' y='430' font-family='Arial' font-size='36' text-anchor='middle' fill='rgba(255,255,255,0.7)'%3EREGISTER%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%234CAF50'/%3E%3Ctext x='256' y='350' font-family='Arial' font-size='280' text-anchor='middle' fill='white'%3E📚%3C/text%3E%3Ctext x='256' y='430' font-family='Arial' font-size='36' text-anchor='middle' fill='rgba(255,255,255,0.7)'%3EREGISTER%3C/text%3E%3C/svg%3E",
+      "sizes": "144x144",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%234CAF50'/%3E%3Ctext x='256' y='350' font-family='Arial' font-size='280' text-anchor='middle' fill='white'%3E📚%3C/text%3E%3Ctext x='256' y='430' font-family='Arial' font-size='36' text-anchor='middle' fill='rgba(255,255,255,0.7)'%3EREGISTER%3C/text%3E%3C/svg%3E",
+      "sizes": "96x96",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%234CAF50'/%3E%3Ctext x='256' y='350' font-family='Arial' font-size='280' text-anchor='middle' fill='white'%3E📚%3C/text%3E%3Ctext x='256' y='430' font-family='Arial' font-size='36' text-anchor='middle' fill='rgba(255,255,255,0.7)'%3EREGISTER%3C/text%3E%3C/svg%3E",
+      "sizes": "72x72",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mark Attendance",
+      "short_name": "Attendance",
+      "description": "Mark today's attendance",
+      "url": "/?action=attendance",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%234CAF50'/%3E%3Ctext x='256' y='350' font-family='Arial' font-size='280' text-anchor='middle' fill='white'%3E📅%3C/text%3E%3C/svg%3E",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "View Reports",
+      "short_name": "Reports",
+      "description": "View attendance reports",
+      "url": "/?action=reports",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%234CAF50'/%3E%3Ctext x='256' y='350' font-family='Arial' font-size='280' text-anchor='middle' fill='white'%3E📊%3C/text%3E%3C/svg%3E",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Manage Students",
+      "short_name": "Students",
+      "description": "Add or manage students",
+      "url": "/?action=students",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%234CAF50'/%3E%3Ctext x='256' y='350' font-family='Arial' font-size='280' text-anchor='middle' fill='white'%3E👨‍🎓%3C/text%3E%3C/svg%3E",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23f0f4f8'/%3E%3Crect x='20' y='20' width='760' height='560' rx='20' fill='white'/%3E%3Ctext x='400' y='100' font-family='Arial' font-size='32' text-anchor='middle' fill='%231a202c'%3E📚 Slum Child Register%3C/text%3E%3Crect x='50' y='150' width='700' height='60' rx='10' fill='%234CAF50'/%3E%3Ctext x='400' y='188' font-family='Arial' font-size='24' text-anchor='middle' fill='white'%3E📅 Mark Daily Attendance%3C/text%3E%3Crect x='50' y='230' width='700' height='340' rx='10' fill='%23f7fafc'/%3E%3Crect x='70' y='250' width='660' height='50' rx='8' fill='%23c6f6d5'/%3E%3Ctext x='400' y='280' font-family='Arial' font-size='18' text-anchor='middle' fill='%2322543d'%3E✅ Rita Achieng - Present%3C/text%3E%3Crect x='70' y='310' width='660' height='50' rx='8' fill='%23fed7d7'/%3E%3Ctext x='400' y='340' font-family='Arial' font-size='18' text-anchor='middle' fill='%239b2c2c'%3E❌ Trizah Akinyi - Absent%3C/text%3E%3Crect x='70' y='370' width='660' height='50' rx='8' fill='%23c6f6d5'/%3E%3Ctext x='400' y='400' font-family='Arial' font-size='18' text-anchor='middle' fill='%2322543d'%3E✅ Angeline Scarlet - Present%3C/text%3E%3Crect x='70' y='430' width='660' height='50' rx='8' fill='%23c6f6d5'/%3E%3Ctext x='400' y='460' font-family='Arial' font-size='18' text-anchor='middle' fill='%2322543d'%3E✅ Hellen Mueni - Present%3C/text%3E%3Crect x='70' y='490' width='660' height='50' rx='8' fill='%23fed7d7'/%3E%3Ctext x='400' y='520' font-family='Arial' font-size='18' text-anchor='middle' fill='%239b2c2c'%3E❌ Clansy Wairimu - Absent%3C/text%3E%3C/svg%3E",
+      "sizes": "800x600",
+      "type": "image/svg+xml",
+      "platform": "wide"
     }
   ]
 }
