@@ -177,10 +177,38 @@ function init() {
         setDefaultDate();
         updateUI();
         updateUndoButtons();
+        
+        // Set up event delegation for attendance grid
+        setupEventDelegation();
+        
         console.log('App initialized successfully!');
     } catch (e) {
         console.error('Error initializing app:', e);
         showStatus('Error initializing app. Please refresh.', 'error');
+    }
+}
+
+// ==================== EVENT DELEGATION ====================
+function setupEventDelegation() {
+    // Use event delegation for the attendance grid
+    const grid = document.getElementById('attendanceGrid');
+    if (grid) {
+        // Remove any existing listeners to avoid duplicates
+        grid.removeEventListener('click', handleAttendanceClick);
+        grid.addEventListener('click', handleAttendanceClick);
+        console.log('✅ Event delegation set up for attendance grid');
+    }
+}
+
+function handleAttendanceClick(e) {
+    // Find the closest attendance-item
+    const item = e.target.closest('.attendance-item');
+    if (!item) return;
+    
+    const studentId = item.dataset.studentId;
+    if (studentId) {
+        console.log('🖱️ Clicked student:', studentId);
+        toggleStudentStatus(studentId);
     }
 }
 
@@ -487,7 +515,8 @@ function renderAttendanceGrid() {
     // Update stats
     updateAttendanceStats();
 
-    grid.innerHTML = appData.students.map((student, index) => {
+    // Render the grid - using data attributes for event delegation
+    grid.innerHTML = appData.students.map((student) => {
         const isPresent = currentAttendanceStatus[student.id] || false;
         const statusClass = isPresent ? 'present' : 'absent';
         const statusText = isPresent ? '✅ Present' : '❌ Absent';
@@ -495,7 +524,7 @@ function renderAttendanceGrid() {
         return `
             <div class="attendance-item ${statusClass}" 
                  data-student-id="${student.id}"
-                 onclick="toggleStudentStatus('${student.id}')">
+                 style="cursor: pointer;">
                 <div class="name">${student.name}</div>
                 <div class="status-badge ${statusClass}">
                     ${statusText}
@@ -510,9 +539,20 @@ function renderAttendanceGrid() {
 }
 
 function toggleStudentStatus(studentId) {
+    console.log('🔄 Toggling student:', studentId);
+    
+    // Make sure the student exists
+    const student = appData.students.find(s => s.id === studentId);
+    if (!student) {
+        console.error('Student not found:', studentId);
+        return;
+    }
+    
     // Toggle the status
     const newStatus = !currentAttendanceStatus[studentId];
     currentAttendanceStatus[studentId] = newStatus;
+    
+    console.log(`📝 ${student.name} set to ${newStatus ? 'Present' : 'Absent'}`);
     
     // Push to history before changing
     pushToHistory('studentToggle', {
@@ -1143,11 +1183,20 @@ if ('serviceWorker' in navigator) {
         // Try to register service worker, but don't fail if it's not found
         navigator.serviceWorker.register('/sw.js')
             .then(function(registration) {
-                console.log('ServiceWorker registration successful');
+                console.log('✅ ServiceWorker registration successful');
             })
             .catch(function(err) {
                 // Service worker not found - that's okay, app still works offline via localStorage
-                console.log('ServiceWorker registration skipped (not found):', err);
+                console.log('⚠️ ServiceWorker registration skipped (not found):', err);
+                // Show a non-blocking message
+                const status = document.getElementById('statusMessage');
+                if (status) {
+                    status.textContent = 'ℹ️ Running in offline mode. Service worker not available.';
+                    status.className = 'status-message show status-info';
+                    setTimeout(() => {
+                        status.classList.remove('show');
+                    }, 4000);
+                }
             });
     });
 }
@@ -1160,3 +1209,7 @@ window.addEventListener('storage', function(e) {
         updateUI();
     }
 });
+
+// ==================== DEBUG: Test toggle functionality ====================
+console.log('🔧 App loaded. Toggle students by clicking on them.');
+console.log(`📊 ${DEFAULT_STUDENTS.length} default students available.`);
