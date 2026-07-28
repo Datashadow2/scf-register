@@ -1,3 +1,7 @@
+// ==================== ERROR HANDLING ====================
+// Handle service worker registration errors gracefully
+console.log('App initializing...');
+
 // ==================== DEFAULT STUDENTS ====================
 const DEFAULT_STUDENTS = [
     "Rita Achieng", "Trizah Akinyi", "Angeline Scarlet", "Hellen Mueni",
@@ -45,104 +49,139 @@ let historyIndex = -1;
 const MAX_HISTORY = 50;
 
 function pushToHistory(action, data) {
-    // Remove any forward history
-    historyStack = historyStack.slice(0, historyIndex + 1);
-    
-    // Add new action
-    historyStack.push({
-        action: action,
-        data: data,
-        timestamp: new Date().toISOString()
-    });
-    
-    // Limit history size
-    if (historyStack.length > MAX_HISTORY) {
-        historyStack.shift();
+    try {
+        // Remove any forward history
+        historyStack = historyStack.slice(0, historyIndex + 1);
+        
+        // Add new action
+        historyStack.push({
+            action: action,
+            data: data,
+            timestamp: new Date().toISOString()
+        });
+        
+        // Limit history size
+        if (historyStack.length > MAX_HISTORY) {
+            historyStack.shift();
+        }
+        
+        historyIndex = historyStack.length - 1;
+        updateUndoButtons();
+    } catch (e) {
+        console.error('Error pushing to history:', e);
     }
-    
-    historyIndex = historyStack.length - 1;
-    updateUndoButtons();
 }
 
 function undoAction() {
-    if (historyIndex < 0) return;
-    
-    const previousState = historyStack[historyIndex - 1];
-    
-    if (previousState) {
-        // Restore previous state
-        restoreAttendanceState(previousState.data);
-        historyIndex--;
-        showStatus('↩️ Undo successful', 'info');
-    } else {
-        showStatus('Nothing to undo', 'info');
+    try {
+        if (historyIndex < 0) {
+            showStatus('Nothing to undo', 'info');
+            return;
+        }
+        
+        const previousState = historyStack[historyIndex - 1];
+        
+        if (previousState) {
+            restoreAttendanceState(previousState.data);
+            historyIndex--;
+            showStatus('↩️ Undo successful', 'info');
+        } else {
+            showStatus('Nothing to undo', 'info');
+        }
+        updateUndoButtons();
+    } catch (e) {
+        console.error('Error undoing:', e);
+        showStatus('Error undoing action', 'error');
     }
-    updateUndoButtons();
 }
 
 function redoAction() {
-    if (historyIndex >= historyStack.length - 1) return;
-    
-    const nextState = historyStack[historyIndex + 1];
-    if (nextState) {
-        restoreAttendanceState(nextState.data);
-        historyIndex++;
-        showStatus('↪️ Redo successful', 'info');
-    } else {
-        showStatus('Nothing to redo', 'info');
+    try {
+        if (historyIndex >= historyStack.length - 1) {
+            showStatus('Nothing to redo', 'info');
+            return;
+        }
+        
+        const nextState = historyStack[historyIndex + 1];
+        if (nextState) {
+            restoreAttendanceState(nextState.data);
+            historyIndex++;
+            showStatus('↪️ Redo successful', 'info');
+        } else {
+            showStatus('Nothing to redo', 'info');
+        }
+        updateUndoButtons();
+    } catch (e) {
+        console.error('Error redoing:', e);
+        showStatus('Error redoing action', 'error');
     }
-    updateUndoButtons();
 }
 
 function restoreAttendanceState(data) {
-    if (data.statusMap) {
-        currentAttendanceStatus = JSON.parse(JSON.stringify(data.statusMap));
+    try {
+        if (data.statusMap) {
+            currentAttendanceStatus = JSON.parse(JSON.stringify(data.statusMap));
+        }
+        if (data.teacherMap) {
+            currentTeacherAttendance = JSON.parse(JSON.stringify(data.teacherMap));
+        }
+        renderAttendanceGrid();
+        updateAttendanceStats();
+        renderTeacherCheckboxes();
+    } catch (e) {
+        console.error('Error restoring state:', e);
     }
-    if (data.teacherMap) {
-        currentTeacherAttendance = JSON.parse(JSON.stringify(data.teacherMap));
-    }
-    renderAttendanceGrid();
-    updateAttendanceStats();
-    renderTeacherCheckboxes();
 }
 
 function updateUndoButtons() {
-    const undoBtn = document.getElementById('undoBtn');
-    const redoBtn = document.getElementById('redoBtn');
-    
-    if (undoBtn) {
-        undoBtn.disabled = historyIndex < 0;
-        undoBtn.style.opacity = historyIndex < 0 ? '0.5' : '1';
-    }
-    if (redoBtn) {
-        redoBtn.disabled = historyIndex >= historyStack.length - 1;
-        redoBtn.style.opacity = historyIndex >= historyStack.length - 1 ? '0.5' : '1';
+    try {
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+        
+        if (undoBtn) {
+            undoBtn.disabled = historyIndex < 0;
+            undoBtn.style.opacity = historyIndex < 0 ? '0.5' : '1';
+        }
+        if (redoBtn) {
+            redoBtn.disabled = historyIndex >= historyStack.length - 1;
+            redoBtn.style.opacity = historyIndex >= historyStack.length - 1 ? '0.5' : '1';
+        }
+    } catch (e) {
+        console.error('Error updating undo buttons:', e);
     }
 }
 
 // ==================== INITIALIZATION ====================
 function init() {
-    loadData();
-    
-    // Initialize with default students if no students exist
-    if (appData.students.length === 0) {
-        DEFAULT_STUDENTS.forEach(name => {
-            appData.students.push({
-                id: 'STU' + String(appData.students.length + 1).padStart(3, '0'),
-                name: name,
-                daysToAttend: 5,
-                joined: new Date().toISOString(),
-                attendance: []
+    try {
+        console.log('Initializing app...');
+        loadData();
+        
+        // Initialize with default students if no students exist
+        if (appData.students.length === 0) {
+            console.log('Adding default students...');
+            DEFAULT_STUDENTS.forEach(name => {
+                appData.students.push({
+                    id: 'STU' + String(appData.students.length + 1).padStart(3, '0'),
+                    name: name,
+                    daysToAttend: 5,
+                    joined: new Date().toISOString(),
+                    attendance: []
+                });
             });
-        });
-        saveData();
-    }
+            saveData();
+        }
 
-    applyTheme();
-    checkSetup();
-    setDefaultDate();
-    updateUI();
-    updateUndoButtons();
+        applyTheme();
+        checkSetup();
+        setDefaultDate();
+        updateUI();
+        updateUndoButtons();
+        console.log('App initialized successfully!');
+    } catch (e) {
+        console.error('Error initializing app:', e);
+        showStatus('Error initializing app. Please refresh.', 'error');
+    }
 }
 
 // ==================== DATA MANAGEMENT ====================
@@ -1098,14 +1137,18 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// ==================== SERVICE WORKER ====================
+// ==================== SERVICE WORKER (with error handling) ====================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js').then(function(registration) {
-            console.log('ServiceWorker registration successful');
-        }).catch(function(err) {
-            console.log('ServiceWorker registration failed: ', err);
-        });
+        // Try to register service worker, but don't fail if it's not found
+        navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+                console.log('ServiceWorker registration successful');
+            })
+            .catch(function(err) {
+                // Service worker not found - that's okay, app still works offline via localStorage
+                console.log('ServiceWorker registration skipped (not found):', err);
+            });
     });
 }
 
